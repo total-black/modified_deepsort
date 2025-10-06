@@ -12,6 +12,11 @@ import numpy as np
 import cv2
 from typing import List
 
+try:
+    import motmetrics as mm
+except Exception:
+    mm = None
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modified_deepsort.tracker import ModifiedTracker
@@ -174,6 +179,33 @@ def run_full_tracking(sequence_dir: str,
         with open(output_file, 'w') as f:
             for res in results:
                 f.write(','.join(map(str, res)) + '\n')
+        # If motmetrics is available and GT exists for this sequence, compute HOTA
+        seq_name = os.path.basename(sequence_dir.rstrip(os.sep))
+        gt_file = os.path.join(sequence_dir, 'gt', 'gt.txt')
+        if mm is not None and os.path.exists(gt_file):
+            try:
+                # Load dataframes
+                df_gt = mm.io.loadtxt(gt_file)
+                df_test = mm.io.loadtxt(output_file)
+
+                # Compute reweighting for HOTA across standard MOT thresholds
+                th_list = np.arange(0.05, 0.99, 0.05)
+                res_list = mm.utils.compare_to_groundtruth_reweighting(df_gt, df_test, 'iou', distth=th_list)
+
+                # Create metrics handler and compute HOTA (overall)
+                mh = mm.metrics.create()
+                summary = mh.compute_many(
+                    res_list,
+                    metrics=['deta_alpha', 'assa_alpha', 'hota_alpha'],
+                    generate_overall=True
+                )
+
+                hota = summary['hota_alpha'].iloc[-1] if 'hota_alpha' in summary.columns else 0.0
+                print(f"HOTA (overall): {hota:.4f}")
+            except Exception as e:
+                print(f"HOTA eval failed: {e}")
+        elif mm is None:
+            print("motmetrics not installed; skipping HOTA computation. Install via 'pip install motmetrics' or see grid_search.py for details.")
     
     return results
 
