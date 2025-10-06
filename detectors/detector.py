@@ -14,6 +14,7 @@ class Detector:
     def __init__(self, model_type: str = "yolov5", device: str = "cpu", verbose: bool = False):
         self.model_type = model_type.lower()
         self.device = device
+        self.verbose = verbose
 
         if self.model_type == "yolov5":
             self.model = YOLO("yolov5s.pt")
@@ -45,8 +46,8 @@ class Detector:
                         cls = int(b.cls.item())
                         # FIXED
                         boxes.append([x1, y1, x2 - x1, y2 - y1, conf, cls])
-                    if self.verbose:
-                        print(f"[YOLOv5] Detected {len(boxes)} on frame")
+                if self.verbose:
+                    print(f"[YOLOv5] Detected {len(boxes)} on frame")
                 return np.array(boxes, dtype=np.float32)
 
             else:  # FRCNN / RetinaNet
@@ -57,7 +58,7 @@ class Detector:
 
                 boxes, scores, labels = predictions['boxes'], predictions['scores'], predictions['labels']
                 boxes, scores, labels = boxes.cpu().numpy(), scores.cpu().numpy(), labels.cpu().numpy()
-                
+
                 dets = []
                 for b, s, l in zip(boxes, scores, labels):
                     if l == 1 and s >= conf_threshold:  # only person
@@ -67,7 +68,7 @@ class Detector:
                     unique_classes, class_counts = np.unique(labels, return_counts=True)
                     print(f"[{self.model_type.upper()}] All detections: {len(scores)} (max score: {np.max(scores):.3f})")
                     print(f"  Class breakdown: {dict(zip(unique_classes, class_counts))}")
-                print(f"[{self.model_type.upper()}] Detected {len(dets)} persons on frame")
+                    print(f"[{self.model_type.upper()}] Detected {len(dets)} persons on frame")
                 return np.array(dets, dtype=np.float32)
 
         except Exception as e:

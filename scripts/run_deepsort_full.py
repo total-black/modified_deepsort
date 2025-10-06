@@ -135,7 +135,7 @@ def run_full_tracking(sequence_dir: str,
 
         # FIXED: Always get dict tracks (filters confirmed, adds 'identity')
         tracks = tracker.get_tracks()
-
+        
         # Clean frame summary
         n_dets = len(detections)
         n_tracks = len(tracks)
