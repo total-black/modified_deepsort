@@ -10,13 +10,13 @@ pip install numpy torch torchvision ultralytics torchreid opencv-python-headless
 
 ## Core Scripts
 
-### 1. Full Tracking Pipeline (`run_deepsort_full.py`)
+### 1. Full Tracking Pipeline (`run_deepsort_hota.py`)
 
 Runs complete tracking pipeline: detection → ReID → tracking → evaluation.
 
 **Usage:**
 ```bash
-python scripts/run_deepsort_full.py \
+python scripts/run_deepsort_hota.py \
     --sequence_dir data/KITTI-17 \
     --detector yolov5 \
     --reid_model osnet_x0_25 \
@@ -83,12 +83,12 @@ project_root/
 
 **Basic tracking:**
 ```bash
-python scripts/run_deepsort_full.py --sequence_dir data/KITTI-17
+python scripts/run_deepsort_hota.py --sequence_dir data/KITTI-17
 ```
 
 **High accuracy setup:**
 ```bash
-python scripts/run_deepsort_full.py \
+python scripts/run_deepsort_hota.py \
     --sequence_dir data/KITTI-17 \
     --detector fasterrcnn \
     --reid_model osnet_x1_0 \
