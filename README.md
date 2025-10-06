@@ -55,16 +55,29 @@ python scripts/grid_search.py \
 
 **Output:** Best parameter combination with HOTA score
 
-## Dataset Format
+## Dataset Setup
+
+Create a `data/` folder in the project root and place your datasets there:
 
 ```
-sequence_dir/
-├── img1/           # Image frames (000001.jpg, 000002.jpg, ...)
-├── gt/             # Ground truth (optional, for evaluation)
-│   └── gt.txt
-└── det/            # Pre-computed detections (optional)
-    └── det.txt
+project_root/
+├── data/                    # Dataset folder (create this)
+│   ├── KITTI-17/           # Example sequence
+│   │   ├── img1/           # Image frames (000001.jpg, 000002.jpg, ...)
+│   │   ├── gt/             # Ground truth (optional, for evaluation)
+│   │   │   └── gt.txt
+│   │   └── det/            # Pre-computed detections (optional)
+│   │       └── det.txt
+│   └── MOT16-09/           # Another sequence
+│       └── ...
+└── modified_deepsort/      # Project code
+    └── ...
 ```
+
+**Required structure for each sequence:**
+- `img1/` folder with numbered image files (000001.jpg, 000002.jpg, etc.)
+- `gt/gt.txt` (optional, for HOTA evaluation)
+- `det/det.txt` (optional, for pre-computed detections)
 
 ## Quick Examples
 
