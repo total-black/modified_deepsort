@@ -58,6 +58,11 @@ def run_full_tracking(sequence_dir: str,
                      reid_model: str = "osnet_x0_25",
                      max_cosine_distance: float = 0.2,
                      conf_threshold: float = 0.5,
+                     nms_iou: float = 0.5,
+                     max_age: int = 30,
+                     n_init: int = 3,
+                     img_size: int = 640,
+                     min_area: int = 900,
                      device: str = "cpu",
                      output_file: str = None) -> List[List[float]]:
     """
@@ -80,8 +85,8 @@ def run_full_tracking(sequence_dir: str,
         reid_model=reid_model,
         max_cosine_distance=max_cosine_distance,
         max_iou_distance=0.7,
-        max_age=30,
-        n_init=3,
+        max_age=max_age,
+        n_init=n_init,
         device=device,
         verbose=False
     )
@@ -101,8 +106,7 @@ def run_full_tracking(sequence_dir: str,
         image = cv2.imread(os.path.join(img_dir, frame_file))
         if image is None:
             continue
-
-        raw_dets = detector.detect(image, conf_threshold=conf_threshold)
+        raw_dets = detector.detect(image, conf_threshold=conf_threshold, nms_iou=nms_iou, img_size=img_size)
 
         # FIXED: Mixed class filter (YOLO=0, torchvision=1)
         person_class = 0 if detector_name.startswith("yolo") else 1
@@ -120,6 +124,12 @@ def run_full_tracking(sequence_dir: str,
         raw_dets = converted
 
         detections = sanitize_detections(raw_dets, image.shape)
+
+        # Filter detections by minimum area (width * height)
+        if detections.shape[0] > 0:
+            areas = (detections[:, 2] - detections[:, 0]) * (detections[:, 3] - detections[:, 1])
+            valid = areas >= float(min_area)
+            detections = detections[valid]
 
         if len(detections) > 0:
             # Convert xyxy to xywh for tracker
@@ -181,6 +191,16 @@ def main():
                        help="Maximum cosine distance for REID matching")
     parser.add_argument("--conf_threshold", type=float, default=0.5,
                        help="Detection confidence threshold")
+    parser.add_argument("--nms_iou", type=float, default=0.5,
+                       help="NMS IoU threshold passed to detector (YOLO iou / torchvision nms)")
+    parser.add_argument("--img_size", type=int, default=640,
+                       help="Short-side image size for detector preprocessing")
+    parser.add_argument("--max_age", type=int, default=30,
+                       help="Maximum age (in frames) before a track is deleted")
+    parser.add_argument("--n_init", type=int, default=3,
+                       help="Number of consecutive detections before a track is confirmed")
+    parser.add_argument("--min_area", type=int, default=900,
+                       help="Minimum detection area (px^2) to keep")
     parser.add_argument("--device", default="cpu", choices=["cpu", "cuda", "mps"],
                        help="Device to run on")
     parser.add_argument("--output_file", help="Output file path")
@@ -197,6 +217,11 @@ def main():
         reid_model=args.reid_model,
         max_cosine_distance=args.max_cosine_distance,
         conf_threshold=args.conf_threshold,
+        nms_iou=args.nms_iou,
+        max_age=args.max_age,
+        n_init=args.n_init,
+        img_size=args.img_size if hasattr(args, 'img_size') else 640,
+        min_area=args.min_area,
         device=args.device,
         output_file=args.output_file
     )

@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from torchvision import transforms
 from torchvision.models import detection
+from torchvision.ops import nms as tv_nms
 from ultralytics import YOLO
 
 class Detector:
@@ -31,13 +32,14 @@ class Detector:
             raise ValueError(f"Unsupported detector: {model_type}")
 
     @torch.no_grad()
-    def detect(self, image: np.ndarray, conf_threshold: float = 0.3) -> np.ndarray:
+    def detect(self, image: np.ndarray, conf_threshold: float = 0.3, nms_iou: float = 0.5, img_size: int = 640) -> np.ndarray:
         """
         Returns Nx6 array: [x1,y1,w,h,conf,cls]
         """
         try:
             if self.model_type == "yolov5":
-                results = self.model(image, conf=conf_threshold)
+                # ultralytics YOLO supports 'iou' and 'imgsz' parameters
+                results = self.model(image, conf=conf_threshold, iou=nms_iou, imgsz=img_size)
                 boxes = []
                 for r in results:
                     for b in r.boxes:
@@ -52,12 +54,42 @@ class Detector:
 
             else:  # FRCNN / RetinaNet
                 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                # FIXED 
-                input_tensor = self.transform(image_rgb).to(self.device)  # (C, H, W)
+                # Resize so short side == img_size while preserving aspect ratio
+                h, w = image_rgb.shape[:2]
+                scale = 1.0
+                if min(h, w) > 0 and img_size is not None:
+                    scale = float(img_size) / float(min(h, w))
+                    new_w, new_h = int(round(w * scale)), int(round(h * scale))
+                    image_resized = cv2.resize(image_rgb, (new_w, new_h))
+                else:
+                    image_resized = image_rgb
+
+                input_tensor = self.transform(image_resized).to(self.device)  # (C, H, W)
                 predictions = self.model([input_tensor])[0]
 
                 boxes, scores, labels = predictions['boxes'], predictions['scores'], predictions['labels']
                 boxes, scores, labels = boxes.cpu().numpy(), scores.cpu().numpy(), labels.cpu().numpy()
+
+                # Map boxes back to original image scale if we resized
+                try:
+                    if scale != 1.0:
+                        boxes = boxes.astype(np.float32) / float(scale)
+                except Exception:
+                    pass
+
+                # apply torchvision NMS using provided IoU threshold
+                if boxes.shape[0] > 0:
+                    try:
+                        boxes_tensor = torch.from_numpy(boxes).float().to(self.device)
+                        scores_tensor = torch.from_numpy(scores).float().to(self.device)
+                        keep = tv_nms(boxes_tensor, scores_tensor, float(nms_iou))
+                        keep = keep.cpu().numpy()
+                        boxes = boxes[keep]
+                        scores = scores[keep]
+                        labels = labels[keep]
+                    except Exception:
+                        # fallback: no NMS applied
+                        pass
 
                 dets = []
                 for b, s, l in zip(boxes, scores, labels):
