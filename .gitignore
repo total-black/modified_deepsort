@@ -3,9 +3,9 @@ data/
 results/
 deep_sort/resources/detections/
 deep_sort/resources/networks/*.pb
-models/
 overlays/
 *.npy
 __pycache__/
 .DS_Store
 .venv/
+.vscode/
