@@ -6,6 +6,8 @@ Run DeepSORT with Full Pipeline
 import argparse
 import os
 import sys
+import time
+import glob
 import numpy as np
 import cv2
 from typing import List
@@ -90,6 +92,8 @@ def run_full_tracking(sequence_dir: str,
         return []
     
     frame_files = sorted([f for f in os.listdir(img_dir) if f.endswith('.jpg')])
+    # measure total runtime for FPS calculation
+    start_time = time.time()
     results = []
     
     for frame_idx, frame_file in enumerate(frame_files):
@@ -149,6 +153,12 @@ def run_full_tracking(sequence_dir: str,
             x1, y1, w, h = int(round(x1)), int(round(y1)), int(round(w)), int(round(h))
             results.append([frame_id, track['id'], x1, y1, w, h, track['score'], -1, -1, -1])
     
+    end_time = time.time()
+    total_frames = len(frame_files)
+    elapsed = end_time - start_time if (end_time - start_time) > 0 else 1e-6
+    fps = total_frames / elapsed
+    print(f"Processed {total_frames} frames in {elapsed:.2f}s ({fps:.2f} FPS)")
+
     if output_file:
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         with open(output_file, 'w') as f:
