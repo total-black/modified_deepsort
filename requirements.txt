@@ -9,12 +9,12 @@ Pillow>=7.0.0
 # Deep learning frameworks
 torch>=1.8.0
 torchvision>=0.9.0
-# tensorflow==1.15.0
+tensorflow==1.15.0
 
 # Scientific and ML utilities
 scipy>=1.4.0
 scikit-learn>=0.22.0
-# pandas>=1.0.0
+pandas>=1.0.0
 
 # Utilities
 tqdm>=4.40.0

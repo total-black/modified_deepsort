@@ -73,14 +73,15 @@ def run_full_tracking(sequence_dir: str,
     Returns:
         List of tracking results in MOT format
     """
-    detector = Detector(detector_name, device=device)
+    detector = Detector(detector_name, device=device, verbose=False)
     tracker = ModifiedTracker(
         reid_model=reid_model,
         max_cosine_distance=max_cosine_distance,
         max_iou_distance=0.7,
         max_age=30,
         n_init=3,
-        device=device
+        device=device,
+        verbose=False
     )
     
     img_dir = os.path.join(sequence_dir, "img1")
@@ -115,9 +116,6 @@ def run_full_tracking(sequence_dir: str,
         raw_dets = converted
 
         detections = sanitize_detections(raw_dets, image.shape)
-        print(f"Sanitized dets: {len(detections)}")
-        if len(detections) > 0:
-            print(f"  Avg box size: w={np.mean(detections[:,2]-detections[:,0]):.1f}, h={np.mean(detections[:,3]-detections[:,1]):.1f}")
 
         if len(detections) > 0:
             # Convert xyxy to xywh for tracker
@@ -137,6 +135,12 @@ def run_full_tracking(sequence_dir: str,
 
         # FIXED: Always get dict tracks (filters confirmed, adds 'identity')
         tracks = tracker.get_tracks()
+
+        # Clean frame summary
+        n_dets = len(detections)
+        n_tracks = len(tracks)
+        n_with_id = sum(1 for t in tracks if t.get('identity') is not None)
+        print(f"Frame {frame_id}: {n_dets} feats, {n_tracks} mapped, {n_with_id}/{n_tracks} voted ID")
 
         for track in tracks:
             x1, y1, x2, y2 = track['bbox']  # Safe: dict from get_tracks()

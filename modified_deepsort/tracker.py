@@ -20,7 +20,8 @@ class ModifiedTracker:
                  identity_knn_k: int = 3,
                  identity_cosine_threshold: float = 0.5,
                  identity_window_frames: int = 100,
-                 create_identity_on_appearance: bool = True):
+                 create_identity_on_appearance: bool = True,
+                 verbose: bool = False):        
         """
         Identity-aware ModifiedTracker
 
@@ -30,6 +31,8 @@ class ModifiedTracker:
         """
         self.reid_model = reid_model
         self.device = device
+        self.verbose = verbose
+
 
         # REID manager & feature dim
         self.reid_manager = create_reid_manager(reid_model, device=device)
@@ -52,8 +55,8 @@ class ModifiedTracker:
         # per-track history: track_id -> deque of (frame_id, identity_id, score)
         self.track_identity_history = defaultdict(lambda: deque(maxlen=self.identity_window_frames))
 
-        print(f"ModifiedTracker(identity_db knn_k={identity_knn_k}, cos_thr={identity_cosine_threshold}) initialized")
-
+        if self.verbose:
+            print(f"ModifiedTracker(identity_db knn_k={identity_knn_k}, cos_thr={identity_cosine_threshold}) initialized")
     # ----------------------- existing functions (unchanged) -----------------------
     def update(self, detections: List[Detection]) -> List:
         """ Update underlying tracker with Detection objects and return internal tracks """
@@ -120,7 +123,8 @@ class ModifiedTracker:
 
         # 3) Map detections -> track_id using IoU or builtin association (we'll match by centers)
         det_to_track = self._create_detection_to_track_mapping(tracks, boxes)
-        print(f"Frame {frame_id}: {len(features)} feats, {len(det_to_track)} mapped (IoU>0.1)")
+        if self.verbose:
+            print(f"Frame {frame_id}: {len(features)} feats, {len(det_to_track)} mapped (IoU>0.1)")
         
         # 4) For each detection descriptor, find or create identity and append to per-track history
         for det_idx, feat in enumerate(features):
@@ -151,7 +155,8 @@ class ModifiedTracker:
             else:
                 chosen_assignments[tid] = None
         non_none = sum(1 for v in chosen_assignments.values() if v is not None)
-        print(f"  {non_none}/{len(chosen_assignments)} tracks voted ID")
+        if self.verbose:
+            print(f"  {non_none}/{len(chosen_assignments)} tracks voted ID")
 
         # 6) Resolve conflicts across tracks (simple policy) and apply final identities back to track objects
         resolved = self.identity_db.resolve_id_conflicts(chosen_assignments.copy())
@@ -168,7 +173,8 @@ class ModifiedTracker:
             setattr(t, 'identity', final_identity)
 
         for t in tracks[:5]:
-            print(f"  Track {t.track_id} -> Identity {getattr(t,'identity',None)}")
+            if self.verbose:
+                print(f"  Track {t.track_id} -> Identity {getattr(t,'identity',None)}")
     
         return tracks
 
