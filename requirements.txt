@@ -1,0 +1,32 @@
+# Project requirements for modified_deepsort
+
+
+# Core numeric and image libraries
+numpy>=1.19.0
+opencv-python>=4.5.0
+Pillow>=7.0.0
+
+# Deep learning frameworks
+torch>=1.8.0
+torchvision>=0.9.0
+# tensorflow==1.15.0
+
+# Scientific and ML utilities
+scipy>=1.4.0
+scikit-learn>=0.22.0
+# pandas>=1.0.0
+
+# Utilities
+tqdm>=4.40.0
+trackeval>=1.0.0
+
+# Optional: if using YOLOv5 detector runner which may require extra deps
+# yolov5 uses PyYAML, seaborn, etc. Install only if needed.
+# pyyaml
+
+# Notes:
+# - If you only want to run the tracker with precomputed .npy detections,
+#   you can avoid installing TensorFlow by skipping the detection generation
+#   step (place .npy files in deep_sort/resources/detections/).
+# - For GPU acceleration install the appropriate CUDA-enabled PyTorch and
+#   TensorFlow builds for your system.
